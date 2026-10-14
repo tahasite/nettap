@@ -31,6 +31,16 @@
 
 <br>
 
+<div align="center">
+
+### 🎬 Quick Demo
+
+<img src="docs/images/demo.gif" alt="NETtap Demo" width="800"/>
+
+</div>
+
+<br>
+
 ## 🎯 What is NETtap?
 
 **NETtap** is a professional VPN subscription management panel that acts as an **intelligent DNS proxy** between your customers and VPN providers. Unlike traditional VPN panels, NETtap doesn't route traffic through your server — meaning **zero bandwidth usage, zero speed loss, and unlimited scalability**.
