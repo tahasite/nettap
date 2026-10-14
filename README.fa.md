@@ -1,10 +1,3 @@
----
-
-## 📋 فایل ۴: `README.fa.md` (نسخه فارسی)
-
-فایل جدید `README.fa.md` در ریشه بساز:
-
-```markdown
 <div align="center">
 
 <img src="docs/images/logo.png" alt="NETtap Logo" width="150"/>
