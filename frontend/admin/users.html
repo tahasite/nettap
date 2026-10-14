@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Users</title>
+    <link rel="stylesheet" href="/admin/assets/css/style.css">
+    <link rel="stylesheet" href="/admin/assets/vendor/fontawesome/css/all.min.css">
+    <script src="/admin/assets/vendor/tailwindcss.js"></script>
+    <script src="/admin/assets/vendor/qrcode.min.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Vazir', 'Segoe UI', 'sans-serif'] } } } }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="dashboard flex">
+        <main class="flex-1 relative min-h-screen overflow-hidden">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(99,102,241,0.05),transparent_50%)]"></div>
+
+            <div class="relative z-10">
+                <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-2" data-t="users.title">Users</h1>
+                        <p class="text-sm text-slate-400" data-t="users.subtitle">Manage buyers' subscriptions</p>
+                    </div>
+                    <button class="py-2.5 px-5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl shadow-lg flex items-center gap-2" onclick="openModal('add-user-modal')">
+                        <i class="fas fa-plus"></i>
+                        <span data-t="users.add_new">Add User</span>
+                    </button>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="p-4 sm:p-6">
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-800">
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="users.username">Name</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="users.sub_link">Link</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="users.group">Group</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="users.duration">Duration</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="users.started">Started</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="users.expires">Expires</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="common.status">Status</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="common.actions">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body" class="divide-y divide-slate-800/50">
+                                    <tr><td colspan="8" class="py-4 text-center text-slate-500 text-sm" data-t="common.loading">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 items-center justify-center p-4" id="add-user-modal">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-user-plus text-indigo-400"></i>
+                    <span data-t="users.add_new">Add User</span>
+                </h3>
+                <button class="text-slate-400 hover:text-white text-xl" onclick="closeModal('add-user-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="add-user-form">
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="users.username">Username</label>
+                        <input class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" type="text" id="new-username" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="users.quick_plan">Quick Plan</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" onclick="setPlan(30)" class="quick-plan py-2 px-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 hover:border-indigo-500">30 min</button>
+                            <button type="button" onclick="setPlan(60)" class="quick-plan py-2 px-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 hover:border-indigo-500">1 h</button>
+                            <button type="button" onclick="setPlan(120)" class="quick-plan py-2 px-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 hover:border-indigo-500">2 h</button>
+                            <button type="button" onclick="setPlan(360)" class="quick-plan py-2 px-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 hover:border-indigo-500">6 h</button>
+                            <button type="button" onclick="setPlan(1440)" class="quick-plan py-2 px-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 hover:border-indigo-500">1 d</button>
+                            <button type="button" onclick="setPlan(10080)" class="quick-plan py-2 px-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 hover:border-indigo-500">7 d</button>
+                            <button type="button" onclick="setPlan(43200)" class="quick-plan py-2 px-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 hover:border-indigo-500">30 d</button>
+                            <button type="button" onclick="setPlan(86400)" class="quick-plan py-2 px-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 hover:border-indigo-500">60 d</button>
+                            <button type="button" onclick="setPlan(129600)" class="quick-plan py-2 px-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 hover:border-indigo-500">90 d</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="users.custom_duration">Custom Duration (minutes)</label>
+                        <input class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" type="number" id="new-minutes" value="43200" min="1" required>
+                        <div class="text-xs text-slate-500 mt-1" id="duration-hint">≈ 30 d</div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="users.config_group">Config Group (optional)</label>
+                        <select class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" id="new-group">
+                            <option value="" data-t="users.no_group">No Group</option>
+                        </select>
+                    </div>
+                    <div class="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-3 text-xs text-indigo-300 flex items-start gap-2">
+                        <i class="fas fa-info-circle mt-0.5"></i>
+                        <div>
+                            <div class="font-bold mb-1" data-t="users.timer_starts_on_connect">Timer starts on first connection</div>
+                            <div class="opacity-80" data-t="users.unlimited_volume">All subscriptions have unlimited data</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-800 flex justify-end gap-3">
+                    <button type="submit" class="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl" data-t="common.add">Add</button>
+                    <button type="button" class="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl" onclick="closeModal('add-user-modal')" data-t="common.cancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 items-center justify-center p-4" id="edit-modal">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-user-edit text-blue-400"></i>
+                    <span data-t="users.edit_user">Edit User</span>
+                </h3>
+                <button class="text-slate-400 hover:text-white text-xl" onclick="closeModal('edit-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="edit-user-form">
+                <input type="hidden" id="edit-user-id">
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="users.custom_duration">Duration (minutes)</label>
+                        <input class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" type="number" id="edit-minutes" min="1" required>
+                        <div class="text-xs text-slate-500 mt-1" id="edit-duration-hint">-</div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="users.config_group">Config Group</label>
+                        <select class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" id="edit-group">
+                            <option value="" data-t="users.no_group">No Group</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-800 flex justify-end gap-3">
+                    <button type="submit" class="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl" data-t="common.save">Save</button>
+                    <button type="button" class="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl" onclick="closeModal('edit-modal')" data-t="common.cancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="qr-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 items-center justify-center p-4" onclick="closeQR(event)">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full" onclick="event.stopPropagation()">
+            <div class="text-center mb-4">
+                <div class="text-sm text-white font-medium mb-2" id="qr-title">QR Code</div>
+            </div>
+            <div class="bg-white p-4 rounded-xl flex items-center justify-center">
+                <div id="qr-container"></div>
+            </div>
+            <button onclick="closeQR()" class="w-full mt-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm rounded-lg" data-t="common.close">Close</button>
+        </div>
+    </div>
+
+    <script src="/admin/assets/js/i18n.js"></script>
+    <script src="/admin/assets/js/api.js"></script>
+    <script src="/admin/assets/js/sidebar.js"></script>
+    <script>
+        requireAuth();
+        renderSidebar('users');
+        applyLangToDocument();
+
+        let allGroups = [];
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById(id).classList.add('flex');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+        }
+
+        function formatDuration(minutes) {
+            if (minutes >= 1440) {
+                return `${Math.floor(minutes / 1440)} ${t('common.days')}`;
+            } else if (minutes >= 60) {
+                const h = Math.floor(minutes / 60);
+                const m = minutes % 60;
+                return m > 0 ? `${h} ${t('common.hours')} ${m} ${t('common.minutes')}` : `${h} ${t('common.hours')}`;
+            } else {
+                return `${minutes} ${t('common.minutes')}`;
+            }
+        }
+
+        function formatRemaining(expireDate) {
+            if (!expireDate) return '<span class="text-slate-500">-</span>';
+            const now = new Date();
+            const expire = new Date(expireDate);
+            const diffMs = expire - now;
+            if (diffMs <= 0) return `<span class="text-rose-400">${t('common.expired')}</span>`;
+            
+            const totalMinutes = Math.floor(diffMs / 60000);
+            const days = Math.floor(totalMinutes / 1440);
+            const hours = Math.floor((totalMinutes % 1440) / 60);
+            const minutes = totalMinutes % 60;
+            
+            let text = '';
+            if (days > 0) text = `${days}d ${hours}h`;
+            else if (hours > 0) text = `${hours}h ${minutes}m`;
+            else text = `${minutes}m`;
+            
+            const color = totalMinutes < 60 ? 'text-rose-400' : (totalMinutes < 1440 ? 'text-amber-400' : 'text-emerald-400');
+            return `<span class="${color}">${text}</span>`;
+        }
+
+        function setPlan(minutes) {
+            document.getElementById('new-minutes').value = minutes;
+            document.getElementById('duration-hint').textContent = `≈ ${formatDuration(minutes)}`;
+            document.querySelectorAll('.quick-plan').forEach(b => b.classList.remove('border-indigo-500', 'bg-indigo-500/20'));
+            event.target.classList.add('border-indigo-500', 'bg-indigo-500/20');
+        }
+
+        document.getElementById('new-minutes').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value) || 0;
+            document.getElementById('duration-hint').textContent = `≈ ${formatDuration(val)}`;
+        });
+
+        document.getElementById('edit-minutes').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value) || 0;
+            document.getElementById('edit-duration-hint').textContent = `≈ ${formatDuration(val)}`;
+        });
+
+        async function fetchGroups() {
+            try {
+                allGroups = await apiRequest('/groups/');
+                const noGroupLabel = t('users.no_group');
+                const opts = [`<option value="">${noGroupLabel}</option>`]
+                    .concat(allGroups.map(g => `<option value="${g.id}">${g.name} (${g.config_count})</option>`))
+                    .join('');
+                document.getElementById('new-group').innerHTML = opts;
+                document.getElementById('edit-group').innerHTML = opts;
+            } catch (e) {}
+        }
+
+        async function fetchUsers() {
+            try {
+                const users = await apiRequest('/users/');
+                const tbody = document.getElementById('users-table-body');
+                const subPrefix = window._brandSetting ? window.location.origin : window.location.origin;
+
+                if (!users || users.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="py-4 text-center text-slate-500 text-sm">${t('users.no_users')}</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = users.map(user => {
+                    const subUrl = `${window.location.origin}/sub/${user.token}`;
+                    const firstUse = user.first_use ? formatDate(user.first_use) : `<span class="text-amber-400">${t('users.waiting')}</span>`;
+                    const remaining = formatRemaining(user.expire_date);
+                    
+                    const group = allGroups.find(g => g.id === user.group_id);
+                    const groupBadge = group 
+                        ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs" style="background:${group.color}20; color:${group.color}">${group.name}</span>`
+                        : `<span class="text-xs text-slate-500">${t('users.default_group')}</span>`;
+                    
+                    let statusBadge, blockBtn;
+                    if (user.is_blocked) {
+                        statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs bg-red-500/10 text-red-400"><i class="fas fa-ban"></i> ${t('common.blocked')}</span>`;
+                        blockBtn = `<button class="px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-xs" onclick="unblockUser(${user.id})" data-t-title="common.active"><i class="fas fa-play"></i></button>`;
+                    } else {
+                        statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-xs ${user.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">${user.is_active ? '<i class="fas fa-check"></i> ' + t('common.active') : '<i class="fas fa-times"></i> ' + t('common.expired')}</span>`;
+                        blockBtn = `<button class="px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-xs" onclick="blockUser(${user.id})" data-t-title="common.blocked"><i class="fas fa-ban"></i></button>`;
+                    }
+
+                    return `
+                        <tr class="hover:bg-slate-800/20">
+                            <td class="py-4 text-sm font-medium text-white">${user.username}</td>
+                            <td class="py-4">
+                                <div class="flex items-center gap-1 max-w-xs">
+                                    <input type="text" value="${subUrl}" readonly class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-slate-400 font-mono focus:outline-none" dir="ltr">
+                                    <button class="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg" onclick="copyToClipboard('${subUrl}')" title="${t('common.copy')}"><i class="far fa-copy"></i></button>
+                                    <button class="px-2 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-lg" onclick="showQR('${subUrl}', '${user.username}')" title="QR"><i class="fas fa-qrcode"></i></button>
+                                </div>
+                            </td>
+                            <td class="py-4 text-xs">${groupBadge}</td>
+                            <td class="py-4 text-xs text-slate-300">${formatDuration(user.duration_minutes)}</td>
+                            <td class="py-4 text-xs">${firstUse}</td>
+                            <td class="py-4 text-xs">${remaining}</td>
+                            <td class="py-4 text-sm">${statusBadge}</td>
+                            <td class="py-4 text-sm">
+                                <div class="flex gap-1">
+                                    <button class="px-2 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs" onclick="editUser(${user.id}, ${user.duration_minutes}, ${user.group_id || 0})" title="${t('common.edit')}"><i class="fas fa-edit"></i></button>
+                                    <button class="px-2 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs" onclick="resetUser(${user.id})" title="Reset"><i class="fas fa-redo"></i></button>
+                                    ${blockBtn}
+                                    <button class="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs" onclick="deleteUser(${user.id})" title="${t('common.delete')}"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function editUser(id, minutes, groupId) {
+            document.getElementById('edit-user-id').value = id;
+            document.getElementById('edit-minutes').value = minutes;
+            document.getElementById('edit-duration-hint').textContent = `≈ ${formatDuration(minutes)}`;
+            document.getElementById('edit-group').value = groupId || '';
+            openModal('edit-modal');
+        }
+
+        document.getElementById('edit-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-user-id').value;
+            const minutes = parseInt(document.getElementById('edit-minutes').value);
+            const groupId = document.getElementById('edit-group').value;
+            
+            try {
+                await apiRequest(`/users/${id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        duration_minutes: minutes,
+                        group_id: groupId ? parseInt(groupId) : 0
+                    })
+                });
+                showToast(t('common.success'), 'success');
+                closeModal('edit-modal');
+                fetchUsers();
+            } catch (e) { showToast(e.message, 'error'); }
+        });
+
+        function showQR(text, title) {
+            document.getElementById('qr-title').textContent = title;
+            const container = document.getElementById('qr-container');
+            container.innerHTML = '';
+            new QRCode(container, { text: text, width: 256, height: 256, correctLevel: QRCode.CorrectLevel.M });
+            openModal('qr-modal');
+        }
+
+        function closeQR(event) {
+            if (event && event.target.id !== 'qr-modal') return;
+            closeModal('qr-modal');
+        }
+
+        document.getElementById('add-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('new-username').value;
+            const minutes = parseInt(document.getElementById('new-minutes').value);
+            const groupId = document.getElementById('new-group').value;
+
+            try {
+                await apiRequest('/users/', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: username,
+                        duration_minutes: minutes,
+                        group_id: groupId ? parseInt(groupId) : null
+                    })
+                });
+                showToast(t('common.success'), 'success');
+                closeModal('add-user-modal');
+                document.getElementById('add-user-form').reset();
+                document.getElementById('new-minutes').value = '43200';
+                document.getElementById('duration-hint').textContent = `≈ ${formatDuration(43200)}`;
+                fetchUsers();
+            } catch (e) { showToast(e.message, 'error'); }
+        });
+
+        async function blockUser(id) {
+            if (!confirm(t('users.block_confirm'))) return;
+            try {
+                await apiRequest(`/users/${id}/block`, { method: 'POST' });
+                showToast(t('common.success'), 'success');
+                fetchUsers();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function unblockUser(id) {
+            try {
+                await apiRequest(`/users/${id}/unblock`, { method: 'POST' });
+                showToast(t('common.success'), 'success');
+                fetchUsers();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function resetUser(id) {
+            if (!confirm(t('users.reset_timer'))) return;
+            try {
+                await apiRequest(`/users/${id}/reset`, { method: 'POST' });
+                showToast(t('common.success'), 'success');
+                fetchUsers();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function deleteUser(id) {
+            if (!confirm(t('users.delete_confirm'))) return;
+            try {
+                await apiRequest(`/users/${id}`, { method: 'DELETE' });
+                showToast(t('common.success'), 'success');
+                fetchUsers();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function init() {
+            await fetchGroups();
+            await fetchUsers();
+            document.getElementById('duration-hint').textContent = `≈ ${formatDuration(43200)}`;
+        }
+        init();
+        setInterval(fetchUsers, 30000);
+    </script>
+</body>
+</html>

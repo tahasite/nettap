@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Seller Subscriptions</title>
+    <link rel="stylesheet" href="/admin/assets/css/style.css">
+    <link rel="stylesheet" href="/admin/assets/vendor/fontawesome/css/all.min.css">
+    <script src="/admin/assets/vendor/tailwindcss.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Vazir', 'Segoe UI', 'sans-serif'] } } } }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="dashboard flex">
+        <main class="flex-1 relative min-h-screen overflow-hidden">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(99,102,241,0.05),transparent_50%)]"></div>
+
+            <div class="relative z-10">
+                <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-2" data-t="sellers.title">Seller Subscriptions</h1>
+                        <p class="text-sm text-slate-400" data-t="sellers.subtitle">Parent subscription links</p>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button id="update-btn" class="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg flex items-center gap-2" onclick="triggerUpdate()">
+                            <i class="fas fa-sync"></i>
+                            <span data-t="sellers.update_all">Update All</span>
+                        </button>
+                        <button class="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg flex items-center gap-2" onclick="openModal('add-seller-modal')">
+                            <i class="fas fa-plus"></i>
+                            <span data-t="sellers.add_new">Add</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="p-4 sm:p-6">
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-800">
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="sellers.sub_name">Name</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="sellers.sub_url">URL</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="sellers.last_updated">Updated</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="common.status">Status</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="common.actions">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sellers-table-body" class="divide-y divide-slate-800/50">
+                                    <tr><td colspan="5" class="py-4 text-center text-slate-500 text-sm" data-t="common.loading">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 items-center justify-center p-4" id="add-seller-modal">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-link text-indigo-400"></i>
+                    <span data-t="sellers.add_new">Add Seller</span>
+                </h3>
+                <button class="text-slate-400 hover:text-white text-xl" onclick="closeModal('add-seller-modal')"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="add-seller-form">
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="sellers.sub_name">Name</label>
+                        <input class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" type="text" id="seller-name" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="sellers.sub_url">URL</label>
+                        <input class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 font-mono text-xs" type="url" id="seller-url" required placeholder="https://..." dir="ltr">
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-800 flex justify-end gap-3">
+                    <button type="submit" class="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl" data-t="common.add">Add</button>
+                    <button type="button" class="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl" onclick="closeModal('add-seller-modal')" data-t="common.cancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/admin/assets/js/i18n.js"></script>
+    <script src="/admin/assets/js/api.js"></script>
+    <script src="/admin/assets/js/sidebar.js"></script>
+    <script>
+        requireAuth();
+        renderSidebar('sellers');
+        applyLangToDocument();
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById(id).classList.add('flex');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+        }
+
+        async function triggerUpdate() {
+            const btn = document.getElementById('update-btn');
+            const orig = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                await apiRequest('/sellers/trigger-update', { method: 'POST' });
+                showToast(t('common.success'), 'success');
+                fetchSellers();
+            } catch (e) { showToast(e.message, 'error'); }
+            finally {
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+        }
+
+        async function fetchSellers() {
+            try {
+                const sellers = await apiRequest('/sellers/');
+                const tbody = document.getElementById('sellers-table-body');
+
+                if (!sellers || sellers.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-500 text-sm">${t('sellers.no_sellers')}</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = sellers.map(seller => `
+                    <tr class="hover:bg-slate-800/20">
+                        <td class="py-4 text-sm font-medium text-white">${seller.name}</td>
+                        <td class="py-4 text-xs text-slate-400 font-mono max-w-xs truncate" dir="ltr">${seller.url}</td>
+                        <td class="py-4 text-xs text-slate-300">${formatDate(seller.last_updated)}</td>
+                        <td class="py-4 text-sm">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs ${seller.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
+                                ${seller.is_active ? '<i class="fas fa-check"></i> ' + t('common.active') : '<i class="fas fa-times"></i> ' + t('common.inactive')}
+                            </span>
+                        </td>
+                        <td class="py-4 text-sm">
+                            <button class="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs" onclick="deleteSeller(${seller.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        document.getElementById('add-seller-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await apiRequest('/sellers/', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: document.getElementById('seller-name').value,
+                        url: document.getElementById('seller-url').value
+                    })
+                });
+                showToast(t('common.success'), 'success');
+                closeModal('add-seller-modal');
+                document.getElementById('add-seller-form').reset();
+                fetchSellers();
+            } catch (e) { showToast(e.message, 'error'); }
+        });
+
+        async function deleteSeller(id) {
+            if (!confirm(t('sellers.delete_confirm'))) return;
+            try {
+                await apiRequest(`/sellers/${id}`, { method: 'DELETE' });
+                showToast(t('common.success'), 'success');
+                fetchSellers();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        fetchSellers();
+    </script>
+</body>
+</html>

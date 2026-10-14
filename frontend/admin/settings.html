@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Settings</title>
+    <link rel="stylesheet" href="/admin/assets/css/style.css">
+    <link rel="stylesheet" href="/admin/assets/vendor/fontawesome/css/all.min.css">
+    <script src="/admin/assets/vendor/tailwindcss.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Vazir', 'Segoe UI', 'sans-serif'] } } } }
+    </script>
+    <style>
+        .tab-active {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+            border-color: #6366f1;
+            color: #a5b4fc;
+        }
+        .changed-field {
+            border-color: #f59e0b !important;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="dashboard flex">
+        <main class="flex-1 relative min-h-screen overflow-hidden">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(99,102,241,0.05),transparent_50%)]"></div>
+
+            <div class="relative z-10">
+                <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+                            <i class="fas fa-cog text-indigo-400"></i>
+                            <span data-t="settings.title">System Settings</span>
+                        </h1>
+                        <p class="text-sm text-slate-400" data-t="settings.subtitle">Complete configuration</p>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button id="save-all-btn" onclick="saveAllChanges()" class="hidden py-2.5 px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl shadow-lg flex items-center gap-2">
+                            <i class="fas fa-save"></i>
+                            <span data-t="settings.save_changes">Save Changes</span>
+                            <span class="bg-white/20 px-2 py-0.5 rounded-lg text-xs" id="changes-count">0</span>
+                        </button>
+                        <button onclick="reloadSettings()" class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl flex items-center gap-2">
+                            <i class="fas fa-sync"></i>
+                            <span data-t="settings.reload">Reload</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 text-xs text-amber-300 flex items-start gap-2">
+                    <i class="fas fa-info-circle mt-0.5"></i>
+                    <div data-t="settings.tips">Note: After changing settings, click 'Save Changes'.</div>
+                </div>
+
+                <div class="flex flex-col lg:flex-row gap-6">
+                    <div class="lg:w-64 flex-shrink-0">
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 lg:sticky lg:top-4">
+                            <div id="tabs-list" class="space-y-1">
+                                <div class="text-center py-4 text-slate-500 text-sm" data-t="common.loading">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <div id="settings-content" class="space-y-4">
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-500">
+                                <i class="fas fa-spinner fa-spin text-2xl mb-3"></i>
+                                <div data-t="common.loading">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/admin/assets/js/i18n.js"></script>
+    <script src="/admin/assets/js/api.js"></script>
+    <script src="/admin/assets/js/sidebar.js"></script>
+    <script>
+        requireAuth();
+        renderSidebar('settings');
+        applyLangToDocument();
+
+        let allCategories = [];
+        let currentCategory = null;
+        let originalValues = {};
+        let changedValues = {};
+
+        async function fetchSettings() {
+            try {
+                allCategories = await apiRequest('/settings/');
+                allCategories.forEach(cat => {
+                    cat.settings.forEach(s => { originalValues[s.key] = s.value; });
+                });
+                renderTabs();
+                if (!currentCategory && allCategories.length > 0) {
+                    currentCategory = allCategories[0].category;
+                }
+                renderSettings();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        function getCategoryLabel(cat) {
+            const key = `settings.categories.${cat.category}`;
+            const translated = t(key);
+            if (translated && translated !== key) return translated;
+            return cat.label_en;
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('tabs-list');
+            container.innerHTML = allCategories.map(cat => `
+                <button onclick="selectCategory('${cat.category}')" 
+                    class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-start ${cat.category === currentCategory ? 'tab-active border-s-4' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 border-s-4 border-transparent'}">
+                    <i class="fas ${cat.icon} text-base w-5"></i>
+                    <span class="flex-1">${getCategoryLabel(cat)}</span>
+                    <span class="text-xs bg-slate-800 px-2 py-0.5 rounded-full">${cat.settings.length}</span>
+                </button>
+            `).join('');
+        }
+
+        function selectCategory(cat) {
+            currentCategory = cat;
+            renderTabs();
+            renderSettings();
+        }
+
+        function getSettingLabel(setting) {
+            const lang = getCurrentLang();
+            if (lang === 'fa' && setting.label_fa) return setting.label_fa;
+            return setting.label_en;
+        }
+
+        function getSettingDesc(setting) {
+            const lang = getCurrentLang();
+            if (lang === 'fa' && setting.description_fa) return setting.description_fa;
+            return setting.description_en;
+        }
+
+        function renderSettings() {
+            const container = document.getElementById('settings-content');
+            const category = allCategories.find(c => c.category === currentCategory);
+            
+            if (!category) {
+                container.innerHTML = '<div class="text-center text-slate-500 py-8">—</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
+                        <div class="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 text-xl">
+                            <i class="fas ${category.icon}"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-white">${getCategoryLabel(category)}</h2>
+                            <p class="text-xs text-slate-500">${category.label_en}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-5">
+                        ${category.settings.map(s => renderSettingField(s)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSettingField(setting) {
+            const inputId = `setting-${setting.key}`;
+            let input = '';
+            const currentValue = changedValues[setting.key] !== undefined ? changedValues[setting.key] : setting.value;
+            const changedClass = changedValues[setting.key] !== undefined ? 'changed-field' : '';
+            const label = getSettingLabel(setting);
+            const desc = getSettingDesc(setting);
+
+            switch(setting.value_type) {
+                case 'boolean':
+                    const isChecked = currentValue === 'true' || currentValue === true;
+                    input = `
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="${inputId}" ${isChecked ? 'checked' : ''} 
+                                onchange="handleChange('${setting.key}', this.checked ? 'true' : 'false')" 
+                                class="sr-only peer">
+                            <div class="w-14 h-7 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <span class="ms-3 text-sm text-slate-300">${isChecked ? t('common.enabled') : t('common.disabled')}</span>
+                        </label>
+                    `;
+                    break;
+                case 'color':
+                    input = `
+                        <div class="flex gap-2 items-center">
+                            <input type="color" id="${inputId}" value="${currentValue || '#6366f1'}" 
+                                onchange="handleChange('${setting.key}', this.value)"
+                                class="w-16 h-10 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer ${changedClass}">
+                            <input type="text" value="${currentValue || ''}" 
+                                onchange="handleChange('${setting.key}', this.value)"
+                                class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm ${changedClass}" dir="ltr">
+                        </div>
+                    `;
+                    break;
+                case 'password':
+                    input = `
+                        <div class="relative">
+                            <input type="password" id="${inputId}" value="${currentValue || ''}" 
+                                onchange="handleChange('${setting.key}', this.value)"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm ${changedClass}" dir="ltr">
+                            <button type="button" onclick="togglePassword('${inputId}')" 
+                                class="absolute top-1/2 -translate-y-1/2 end-3 text-slate-400 hover:text-indigo-400">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    `;
+                    break;
+                case 'number':
+                    input = `
+                        <input type="number" id="${inputId}" value="${currentValue || '0'}" 
+                            onchange="handleChange('${setting.key}', this.value)"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 ${changedClass}">
+                    `;
+                    break;
+                case 'url':
+                    input = `
+                        <input type="url" id="${inputId}" value="${currentValue || ''}" 
+                            placeholder="https://..."
+                            onchange="handleChange('${setting.key}', this.value)"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm ${changedClass}" dir="ltr">
+                    `;
+                    break;
+                case 'select':
+                    const options = setting.key === 'default_language' 
+                        ? [['en', '🇬🇧 English'], ['fa', '🇮🇷 فارسی'], ['ru', '🇷🇺 Русский']]
+                        : [];
+                    input = `
+                        <select id="${inputId}" onchange="handleChange('${setting.key}', this.value)"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 ${changedClass}">
+                            ${options.map(opt => `<option value="${opt[0]}" ${currentValue === opt[0] ? 'selected' : ''}>${opt[1]}</option>`).join('')}
+                        </select>
+                    `;
+                    break;
+                case 'textarea':
+                    input = `
+                        <textarea id="${inputId}" rows="4"
+                            onchange="handleChange('${setting.key}', this.value)"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 ${changedClass}">${currentValue || ''}</textarea>
+                    `;
+                    break;
+                default:
+                    input = `
+                        <input type="text" id="${inputId}" value="${currentValue || ''}" 
+                            onchange="handleChange('${setting.key}', this.value)"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 ${changedClass}">
+                    `;
+            }
+
+            return `
+                <div class="setting-item">
+                    <div class="flex items-start justify-between gap-4 mb-2">
+                        <div class="flex-1 min-w-0">
+                            <label for="${inputId}" class="block text-sm font-medium text-white mb-1 flex items-center gap-2">
+                                ${label}
+                                ${setting.is_secret ? '<i class="fas fa-lock text-amber-400 text-xs"></i>' : ''}
+                            </label>
+                            ${desc ? `<p class="text-xs text-slate-500 leading-5">${desc}</p>` : ''}
+                        </div>
+                        <code class="text-xs text-slate-600 bg-slate-800/50 px-2 py-1 rounded hidden sm:inline-block">${setting.key}</code>
+                    </div>
+                    <div class="mt-2">${input}</div>
+                </div>
+            `;
+        }
+
+        function handleChange(key, value) {
+            if (originalValues[key] === value) {
+                delete changedValues[key];
+            } else {
+                changedValues[key] = value;
+            }
+            updateChangesIndicator();
+            renderSettings();
+        }
+
+        function updateChangesIndicator() {
+            const count = Object.keys(changedValues).length;
+            const btn = document.getElementById('save-all-btn');
+            document.getElementById('changes-count').textContent = count;
+            if (count > 0) {
+                btn.classList.remove('hidden');
+                btn.classList.add('flex');
+            } else {
+                btn.classList.add('hidden');
+                btn.classList.remove('flex');
+            }
+        }
+
+        function togglePassword(id) {
+            const input = document.getElementById(id);
+            const icon = input.nextElementSibling.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        async function saveAllChanges() {
+            if (Object.keys(changedValues).length === 0) return;
+            if (!confirm(`${Object.keys(changedValues).length} ${t('settings.save_changes')}?`)) return;
+            
+            try {
+                const res = await apiRequest('/settings/bulk-update', {
+                    method: 'POST',
+                    body: JSON.stringify({ settings: changedValues })
+                });
+                showToast(`${res.updated_count} ✓`, 'success');
+                Object.keys(changedValues).forEach(key => { originalValues[key] = changedValues[key]; });
+                changedValues = {};
+                await fetchSettings();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function reloadSettings() {
+            if (Object.keys(changedValues).length > 0) {
+                if (!confirm('Unsaved changes will be lost. Continue?')) return;
+            }
+            changedValues = {};
+            updateChangesIndicator();
+            await fetchSettings();
+            showToast(t('common.success'), 'success');
+        }
+
+        fetchSettings();
+    </script>
+</body>
+</html>

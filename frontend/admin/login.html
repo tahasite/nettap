@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Admin Login</title>
+    <link rel="stylesheet" href="/admin/assets/css/style.css">
+    <link rel="stylesheet" href="/admin/assets/vendor/fontawesome/css/all.min.css">
+    <script src="/admin/assets/vendor/tailwindcss.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Vazir', 'Segoe UI', 'sans-serif'] } } } }
+    </script>
+    <style>
+        body {
+            background: radial-gradient(ellipse at top, #1e1b4b 0%, #0f172a 40%, #020617 100%);
+            min-height: 100vh;
+        }
+        .floating-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 0;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4">
+    <div class="floating-orb animate-float" style="width: 400px; height: 400px; background: #6366f1; top: 10%; right: 10%;"></div>
+    <div class="floating-orb animate-float" style="width: 350px; height: 350px; background: #8b5cf6; bottom: 10%; left: 10%; animation-delay: 2s;"></div>
+    
+    <div class="relative z-10 w-full max-w-md">
+        <div class="absolute -top-16 right-0">
+            <div class="relative">
+                <button onclick="toggleLoginLang()" id="lang-btn" class="w-11 h-11 rounded-xl bg-slate-800/80 backdrop-blur hover:bg-slate-700 flex items-center justify-center text-lg border border-slate-700 transition-all">
+                    <span id="current-flag">🇬🇧</span>
+                </button>
+                <div id="lang-menu" class="hidden absolute top-13 right-0 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 min-w-[150px]">
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-slate-900/70 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-indigo-500/40">
+                    <i class="fas fa-shield-halved text-white text-3xl"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2" data-t="login.title">Welcome Back</h1>
+                <p class="text-sm text-slate-400" data-t="login.subtitle">Sign in to your admin panel</p>
+            </div>
+            
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-2" data-t="login.username">Username</label>
+                    <div class="relative">
+                        <i class="fas fa-user absolute top-1/2 -translate-y-1/2 left-4 text-slate-500"></i>
+                        <input type="text" id="username" required autocomplete="username"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-all">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-2" data-t="login.password">Password</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute top-1/2 -translate-y-1/2 left-4 text-slate-500"></i>
+                        <input type="password" id="password" required autocomplete="current-password"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-11 pr-11 py-3 text-white focus:outline-none focus:border-indigo-500 transition-all">
+                        <button type="button" onclick="togglePassword()" class="absolute top-1/2 -translate-y-1/2 right-3 text-slate-400 hover:text-indigo-400">
+                            <i id="password-eye" class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="error-msg" class="hidden bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 text-sm text-rose-400 flex items-center gap-2">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="error-text"></span>
+                </div>
+                
+                <button type="submit" id="submit-btn"
+                    class="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/30 transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-right-to-bracket"></i>
+                    <span data-t="login.sign_in">Sign In</span>
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center text-xs text-slate-500">
+                <span data-brand>NETtap</span> © 2026
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin/assets/js/i18n.js"></script>
+    <script src="/admin/assets/js/api.js"></script>
+    <script>
+        if (getToken()) {
+            window.location.href = '/admin/index.html';
+        }
+        
+        function renderLangMenu() {
+            const menu = document.getElementById('lang-menu');
+            const currentLang = getCurrentLang();
+            const meta = window.TRANSLATIONS[currentLang].meta;
+            document.getElementById('current-flag').textContent = meta.flag;
+            
+            menu.innerHTML = Object.keys(window.TRANSLATIONS).map(code => `
+                <button onclick="changeLoginLang('${code}')" class="w-full px-4 py-2.5 text-sm hover:bg-slate-800 flex items-center gap-2 ${code === currentLang ? 'bg-indigo-500/10 text-indigo-400' : 'text-slate-300'}">
+                    <span>${window.TRANSLATIONS[code].meta.flag}</span>
+                    <span>${window.TRANSLATIONS[code].meta.name}</span>
+                </button>
+            `).join('');
+        }
+        
+        function toggleLoginLang() {
+            document.getElementById('lang-menu').classList.toggle('hidden');
+        }
+        
+        function changeLoginLang(lang) {
+            setLang(lang);
+        }
+        
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const eye = document.getElementById('password-eye');
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.classList.remove('fa-eye');
+                eye.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                eye.classList.remove('fa-eye-slash');
+                eye.classList.add('fa-eye');
+            }
+        }
+        
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            const errorMsg = document.getElementById('error-msg');
+            const errorText = document.getElementById('error-text');
+            
+            errorMsg.classList.add('hidden');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value,
+                        password: document.getElementById('password').value
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || t('login.invalid'));
+                }
+                
+                setToken(data.access_token);
+                window.location.href = '/admin/index.html';
+            } catch (error) {
+                errorText.textContent = error.message;
+                errorMsg.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-right-to-bracket"></i><span>${t('login.sign_in')}</span>`;
+            }
+        });
+        
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('lang-menu');
+            const btn = document.getElementById('lang-btn');
+            if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+        
+        renderLangMenu();
+        applyLangToDocument();
+        
+        fetch('/api/settings/public').then(r => r.json()).then(data => {
+            if (data.brand_name) {
+                document.querySelectorAll('[data-brand]').forEach(el => el.textContent = data.brand_name);
+                document.title = data.brand_name + ' Admin';
+            }
+        }).catch(() => {});
+    </script>
+</body>
+</html>

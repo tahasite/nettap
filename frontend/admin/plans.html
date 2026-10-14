@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Plans</title>
+    <link rel="stylesheet" href="/admin/assets/css/style.css">
+    <link rel="stylesheet" href="/admin/assets/vendor/fontawesome/css/all.min.css">
+    <script src="/admin/assets/vendor/tailwindcss.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Vazir', 'Segoe UI', 'sans-serif'] } } } }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="dashboard flex">
+        <main class="flex-1 relative min-h-screen overflow-hidden">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(99,102,241,0.05),transparent_50%)]"></div>
+
+            <div class="relative z-10">
+                <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-2" data-t="plans.title">Plans</h1>
+                        <p class="text-sm text-slate-400" data-t="plans.subtitle">Manage pricing</p>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="seedDefaults()" class="py-2.5 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-sm flex items-center gap-2">
+                            <i class="fas fa-download"></i>
+                            <span data-t="plans.seed_defaults">Defaults</span>
+                        </button>
+                        <button onclick="openModal('add-plan-modal')" class="py-2.5 px-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg flex items-center gap-2">
+                            <i class="fas fa-plus"></i>
+                            <span data-t="plans.add_new">Add</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="plans-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="col-span-full text-center py-8 text-slate-500" data-t="common.loading">Loading...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 items-center justify-center p-4" id="add-plan-modal">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2" id="modal-title">
+                    <i class="fas fa-tag text-indigo-400"></i>
+                    <span data-t="plans.add_new">Add Plan</span>
+                </h3>
+                <button class="text-slate-400 hover:text-white" onclick="closeModal('add-plan-modal')"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="plan-form">
+                <input type="hidden" id="plan-id">
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2" data-t="plans.plan_key">Key</label>
+                            <input class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 font-mono text-sm" type="text" id="plan-key" required placeholder="30d">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2" data-t="plans.emoji">Emoji</label>
+                            <input class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 text-center text-2xl" type="text" id="plan-emoji" value="📦" maxlength="4">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="plans.display_name">Display Name</label>
+                        <input class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" type="text" id="plan-name" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2" data-t="plans.duration_minutes">Duration (minutes)</label>
+                            <input class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" type="number" id="plan-minutes" required min="1">
+                            <div class="text-xs text-slate-500 mt-1" id="minutes-hint">-</div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2" data-t="plans.price_toman">Price</label>
+                            <input class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" type="number" id="plan-price" required min="0" value="0">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="users.config_group">Group</label>
+                        <select class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" id="plan-group">
+                            <option value="" data-t="users.no_group">No Group</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2" data-t="plans.display_order">Order</label>
+                            <input class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" type="number" id="plan-order" value="0">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2" data-t="plans.is_active">Active</label>
+                            <select class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none" id="plan-active">
+                                <option value="true" data-t="common.yes">Yes</option>
+                                <option value="false" data-t="common.no">No</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2" data-t="plans.is_test">Test</label>
+                            <select class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none" id="plan-is-test">
+                                <option value="false" data-t="common.no">No</option>
+                                <option value="true" data-t="common.yes">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-800 flex justify-end gap-3">
+                    <button type="submit" class="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl" data-t="common.save">Save</button>
+                    <button type="button" class="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl" onclick="closeModal('add-plan-modal')" data-t="common.cancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/admin/assets/js/i18n.js"></script>
+    <script src="/admin/assets/js/api.js"></script>
+    <script src="/admin/assets/js/sidebar.js"></script>
+    <script>
+        requireAuth();
+        renderSidebar('plans');
+        applyLangToDocument();
+
+        let allGroups = [];
+        let allPlans = [];
+        let editingPlanId = null;
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById(id).classList.add('flex');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+            if (id === 'add-plan-modal') resetForm();
+        }
+
+        function resetForm() {
+            editingPlanId = null;
+            document.getElementById('plan-form').reset();
+            document.getElementById('plan-id').value = '';
+            document.getElementById('plan-emoji').value = '📦';
+            document.getElementById('plan-price').value = '0';
+            document.getElementById('plan-order').value = '0';
+            document.getElementById('plan-active').value = 'true';
+            document.getElementById('plan-is-test').value = 'false';
+            document.getElementById('plan-key').readOnly = false;
+            document.getElementById('minutes-hint').textContent = '-';
+        }
+
+        function formatDuration(minutes) {
+            if (minutes >= 1440) return `${Math.floor(minutes / 1440)} ${t('common.days')}`;
+            if (minutes >= 60) return `${Math.floor(minutes / 60)} ${t('common.hours')}`;
+            return `${minutes} ${t('common.minutes')}`;
+        }
+
+        document.getElementById('plan-minutes').addEventListener('input', (e) => {
+            document.getElementById('minutes-hint').textContent = `≈ ${formatDuration(parseInt(e.target.value) || 0)}`;
+        });
+
+        async function fetchGroups() {
+            try {
+                allGroups = await apiRequest('/groups/');
+                const opts = [`<option value="">${t('users.no_group')}</option>`]
+                    .concat(allGroups.map(g => `<option value="${g.id}">${g.name} (${g.config_count})</option>`))
+                    .join('');
+                document.getElementById('plan-group').innerHTML = opts;
+            } catch (e) {}
+        }
+
+        async function fetchPlans() {
+            try {
+                allPlans = await apiRequest('/plans/');
+                const grid = document.getElementById('plans-grid');
+                
+                if (!allPlans || allPlans.length === 0) {
+                    grid.innerHTML = `
+                        <div class="col-span-full text-center py-12 text-slate-500">
+                            <i class="fas fa-tag text-5xl mb-3 opacity-50"></i>
+                            <div class="text-sm">${t('plans.no_plans')}</div>
+                            <div class="text-xs mt-2 opacity-70">${t('plans.use_default_or_add')}</div>
+                        </div>`;
+                    return;
+                }
+                
+                grid.innerHTML = allPlans.map(p => {
+                    const price = p.price === 0 ? `<span class="text-emerald-400">${t('plans.free')}</span>` : `<b>${p.price.toLocaleString()}</b>`;
+                    const groupBadge = p.group_name 
+                        ? `<span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-indigo-500/10 text-indigo-400"><i class="fas fa-layer-group"></i>${p.group_name}</span>`
+                        : `<span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-amber-500/10 text-amber-400"><i class="fas fa-thumbtack"></i>Pinned</span>`;
+                    const testBadge = p.is_test ? '<span class="px-2 py-0.5 rounded text-xs bg-emerald-500/10 text-emerald-400"><i class="fas fa-gift"></i> Test</span>' : '';
+                    
+                    return `
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg ${!p.is_active ? 'opacity-60' : ''}">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex items-center gap-2">
+                                    <div class="text-3xl">${p.emoji}</div>
+                                    <div>
+                                        <div class="text-white font-bold">${p.name}</div>
+                                        <div class="text-xs text-slate-500 font-mono">${p.plan_key}</div>
+                                    </div>
+                                </div>
+                                ${testBadge}
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+                                <div class="bg-slate-800/50 rounded-lg p-2">
+                                    <div class="text-slate-400"><i class="fas fa-clock"></i> ${t('users.duration')}</div>
+                                    <div class="text-white font-bold">${formatDuration(p.duration_minutes)}</div>
+                                </div>
+                                <div class="bg-slate-800/50 rounded-lg p-2">
+                                    <div class="text-slate-400"><i class="fas fa-coins"></i> Price</div>
+                                    <div class="text-white">${price}</div>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <div class="text-xs text-slate-400 mb-1">${t('users.config_group')}:</div>
+                                ${groupBadge}
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="editPlan(${p.id})" class="flex-1 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs flex items-center justify-center gap-1">
+                                    <i class="fas fa-edit"></i><span>${t('common.edit')}</span>
+                                </button>
+                                <button onclick="toggleActive(${p.id}, ${!p.is_active})" class="flex-1 py-2 ${p.is_active ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400' : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400'} rounded-lg text-xs flex items-center justify-center gap-1">
+                                    <i class="fas fa-${p.is_active ? 'pause' : 'play'}"></i>
+                                </button>
+                                <button onclick="deletePlan(${p.id})" class="py-2 px-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        function editPlan(id) {
+            const plan = allPlans.find(p => p.id === id);
+            if (!plan) return;
+            editingPlanId = id;
+            document.getElementById('plan-id').value = plan.id;
+            document.getElementById('plan-key').value = plan.plan_key;
+            document.getElementById('plan-key').readOnly = true;
+            document.getElementById('plan-emoji').value = plan.emoji;
+            document.getElementById('plan-name').value = plan.name;
+            document.getElementById('plan-minutes').value = plan.duration_minutes;
+            document.getElementById('plan-price').value = plan.price;
+            document.getElementById('plan-group').value = plan.group_id || '';
+            document.getElementById('plan-order').value = plan.display_order;
+            document.getElementById('plan-active').value = plan.is_active.toString();
+            document.getElementById('plan-is-test').value = plan.is_test.toString();
+            document.getElementById('minutes-hint').textContent = `≈ ${formatDuration(plan.duration_minutes)}`;
+            openModal('add-plan-modal');
+        }
+
+        document.getElementById('plan-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('plan-name').value,
+                emoji: document.getElementById('plan-emoji').value,
+                duration_minutes: parseInt(document.getElementById('plan-minutes').value),
+                price: parseInt(document.getElementById('plan-price').value),
+                group_id: document.getElementById('plan-group').value ? parseInt(document.getElementById('plan-group').value) : null,
+                is_active: document.getElementById('plan-active').value === 'true',
+                display_order: parseInt(document.getElementById('plan-order').value) || 0
+            };
+            try {
+                if (editingPlanId) {
+                    await apiRequest(`/plans/${editingPlanId}`, { method: 'PATCH', body: JSON.stringify(data) });
+                } else {
+                    data.plan_key = document.getElementById('plan-key').value;
+                    data.is_test = document.getElementById('plan-is-test').value === 'true';
+                    await apiRequest('/plans/', { method: 'POST', body: JSON.stringify(data) });
+                }
+                showToast(t('common.success'), 'success');
+                closeModal('add-plan-modal');
+                fetchPlans();
+            } catch (e) { showToast(e.message, 'error'); }
+        });
+
+        async function toggleActive(id, newState) {
+            try { await apiRequest(`/plans/${id}`, { method: 'PATCH', body: JSON.stringify({ is_active: newState }) }); showToast(t('common.success'), 'success'); fetchPlans(); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+        async function deletePlan(id) {
+            if (!confirm(t('common.delete') + '?')) return;
+            try { await apiRequest(`/plans/${id}`, { method: 'DELETE' }); showToast(t('common.success'), 'success'); fetchPlans(); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+        async function seedDefaults() {
+            if (!confirm(t('plans.seed_defaults') + '?')) return;
+            try { const r = await apiRequest('/plans/seed-defaults', { method: 'POST' }); showToast(`${r.created} ✓`, 'success'); fetchPlans(); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function init() { await fetchGroups(); await fetchPlans(); }
+        init();
+    </script>
+</body>
+</html>

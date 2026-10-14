@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Configs</title>
+    <link rel="stylesheet" href="/admin/assets/css/style.css">
+    <link rel="stylesheet" href="/admin/assets/vendor/fontawesome/css/all.min.css">
+    <script src="/admin/assets/vendor/tailwindcss.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Vazir', 'Segoe UI', 'sans-serif'] } } } }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="dashboard flex">
+        <main class="flex-1 relative min-h-screen overflow-hidden">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(99,102,241,0.05),transparent_50%)]"></div>
+
+            <div class="relative z-10">
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-white mb-2" data-t="configs.title">Configs</h1>
+                    <p class="text-sm text-slate-400" data-t="configs.subtitle">All extracted configs</p>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                        <div class="text-2xl font-bold text-white" id="stat-total">-</div>
+                        <div class="text-xs text-slate-400 mt-1" data-t="configs.total">Total</div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                        <div class="text-2xl font-bold text-emerald-400" id="stat-working">-</div>
+                        <div class="text-xs text-slate-400 mt-1" data-t="configs.working">Working</div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                        <div class="text-2xl font-bold text-rose-400" id="stat-broken">-</div>
+                        <div class="text-xs text-slate-400 mt-1" data-t="configs.broken">Broken</div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                        <div class="text-2xl font-bold text-amber-400" id="stat-pinned">-</div>
+                        <div class="text-xs text-slate-400 mt-1" data-t="configs.pinned">Pinned</div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                        <div class="text-sm text-slate-300" id="stat-countries">-</div>
+                        <div class="text-xs text-slate-400 mt-1" data-t="configs.countries">Countries</div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2 mb-6">
+                    <button onclick="scanAll()" class="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm flex items-center gap-2">
+                        <i class="fas fa-radar"></i>
+                        <span data-t="configs.scan_all">Full Scan</span>
+                    </button>
+                    <button onclick="scanCountries()" class="py-2 px-4 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl text-sm flex items-center gap-2">
+                        <i class="fas fa-flag"></i>
+                        <span data-t="configs.scan_countries">Countries</span>
+                    </button>
+                    <button onclick="scanPing()" class="py-2 px-4 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-xl text-sm flex items-center gap-2">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span data-t="configs.scan_ping">Ping</span>
+                    </button>
+                    <button onclick="pinAll()" class="py-2 px-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-sm flex items-center gap-2">
+                        <i class="fas fa-thumbtack"></i>
+                        <span data-t="configs.pin_all">Pin All</span>
+                    </button>
+                    <button onclick="unpinAll()" class="py-2 px-4 bg-slate-700/50 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-sm flex items-center gap-2">
+                        <i class="far fa-circle"></i>
+                        <span data-t="configs.unpin_all">Unpin All</span>
+                    </button>
+                    <button onclick="deleteBroken()" class="py-2 px-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-sm flex items-center gap-2">
+                        <i class="fas fa-trash"></i>
+                        <span data-t="configs.delete_broken">Delete Broken</span>
+                    </button>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="p-4 border-b border-slate-800 flex flex-wrap justify-between items-center gap-3">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <div class="relative">
+                                <i class="fas fa-search absolute top-1/2 -translate-y-1/2 left-3 text-slate-500 text-xs"></i>
+                                <input id="search-input" type="text" data-t-placeholder="common.search" class="bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 w-48">
+                            </div>
+                            <select id="protocol-filter" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+                                <option value="" data-t="configs.all_protocols">All Protocols</option>
+                                <option value="vless">VLESS</option>
+                                <option value="vmess">VMESS</option>
+                                <option value="ss">Shadowsocks</option>
+                                <option value="trojan">Trojan</option>
+                            </select>
+                            <select id="pin-filter" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+                                <option value="" data-t="common.all">All</option>
+                                <option value="pinned">Pinned</option>
+                                <option value="unpinned">Not Pinned</option>
+                            </select>
+                            <select id="ping-filter" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+                                <option value="">Ping: All</option>
+                                <option value="has_ping" data-t="configs.has_ping">Has Ping</option>
+                                <option value="no_ping" data-t="configs.no_ping">No Ping</option>
+                                <option value="fast" data-t="configs.fast">Fast</option>
+                                <option value="medium" data-t="configs.medium">Medium</option>
+                                <option value="slow" data-t="configs.slow">Slow</option>
+                            </select>
+                            <select id="status-filter" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none">
+                                <option value="">Status: All</option>
+                                <option value="working" data-t="configs.only_working">Only Working</option>
+                                <option value="broken" data-t="configs.only_broken">Only Broken</option>
+                            </select>
+                        </div>
+                        <div class="text-xs text-slate-400" id="visible-count">-</div>
+                    </div>
+                    <div class="p-4">
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-800">
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start">#</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start"><i class="fas fa-thumbtack"></i></th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start"><i class="fas fa-flag"></i></th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="common.name">Name</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="configs.protocol">Protocol</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="configs.ping">Ping</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="common.status">Status</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="common.actions">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="configs-table-body" class="divide-y divide-slate-800/50">
+                                    <tr><td colspan="8" class="py-4 text-center text-slate-500 text-sm" data-t="common.loading">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 items-center justify-center p-4" id="raw-modal">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-code text-indigo-400"></i>
+                    <span>Config Content</span>
+                </h3>
+                <button class="text-slate-400 hover:text-white" onclick="closeRaw()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6">
+                <textarea id="raw-content" readonly class="w-full h-40 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 font-mono" dir="ltr"></textarea>
+                <button class="mt-3 w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center justify-center gap-2" onclick="copyRaw()">
+                    <i class="far fa-copy"></i>
+                    <span data-t="common.copy">Copy</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin/assets/js/i18n.js"></script>
+    <script src="/admin/assets/js/api.js"></script>
+    <script src="/admin/assets/js/sidebar.js"></script>
+    <script>
+        requireAuth();
+        renderSidebar('configs');
+        applyLangToDocument();
+
+        let allConfigs = [];
+
+        async function loadStats() {
+            try {
+                const stats = await apiRequest('/configs/stats');
+                document.getElementById('stat-total').textContent = stats.total;
+                document.getElementById('stat-working').textContent = stats.working;
+                document.getElementById('stat-broken').textContent = stats.broken;
+                document.getElementById('stat-pinned').textContent = stats.pinned;
+                
+                const countryText = Object.entries(stats.by_country).map(([f, c]) => `${f} ${c}`).join(' ');
+                document.getElementById('stat-countries').textContent = countryText || '—';
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function fetchConfigs() {
+            try {
+                allConfigs = await apiRequest('/configs/');
+                renderTable();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        function renderTable() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const protocol = document.getElementById('protocol-filter').value;
+            const pinFilter = document.getElementById('pin-filter').value;
+            const pingFilter = document.getElementById('ping-filter').value;
+            const statusFilter = document.getElementById('status-filter').value;
+            
+            const filtered = allConfigs.filter(c => {
+                const matchSearch = !search || c.name.toLowerCase().includes(search) || (c.country_code || '').toLowerCase().includes(search);
+                const matchProtocol = !protocol || c.protocol === protocol;
+                const matchPin = !pinFilter || (pinFilter === 'pinned' && c.is_pinned) || (pinFilter === 'unpinned' && !c.is_pinned);
+                
+                let matchPing = true;
+                if (pingFilter === 'has_ping') matchPing = c.ping > 0;
+                else if (pingFilter === 'no_ping') matchPing = c.ping <= 0;
+                else if (pingFilter === 'fast') matchPing = c.ping > 0 && c.ping < 200;
+                else if (pingFilter === 'medium') matchPing = c.ping >= 200 && c.ping <= 500;
+                else if (pingFilter === 'slow') matchPing = c.ping > 500;
+                
+                let matchStatus = true;
+                if (statusFilter === 'working') matchStatus = c.is_working;
+                else if (statusFilter === 'broken') matchStatus = !c.is_working;
+                
+                return matchSearch && matchProtocol && matchPin && matchPing && matchStatus;
+            });
+            
+            document.getElementById('visible-count').textContent = `${filtered.length} / ${allConfigs.length}`;
+            
+            const tbody = document.getElementById('configs-table-body');
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-500 text-sm">—</td></tr>`;
+                return;
+            }
+            
+            const protoColors = {
+                vless: 'bg-blue-500/10 text-blue-400',
+                vmess: 'bg-purple-500/10 text-purple-400',
+                ss: 'bg-emerald-500/10 text-emerald-400',
+                trojan: 'bg-amber-500/10 text-amber-400'
+            };
+            
+            const pingColor = (p) => {
+                if (p < 0) return 'text-rose-400';
+                if (p < 200) return 'text-emerald-400';
+                if (p < 500) return 'text-amber-400';
+                return 'text-orange-400';
+            };
+            
+            tbody.innerHTML = filtered.map((c, i) => `
+                <tr class="hover:bg-slate-800/20 ${c.is_pinned ? 'bg-amber-500/5' : ''}">
+                    <td class="py-3 text-xs text-slate-500">${i + 1}</td>
+                    <td class="py-3">
+                        <button onclick="togglePin(${c.id})" class="text-lg hover:scale-125 transition-transform">
+                            <i class="fas fa-thumbtack ${c.is_pinned ? 'text-amber-400' : 'text-slate-600'}"></i>
+                        </button>
+                    </td>
+                    <td class="py-3 text-lg">${c.country_flag || '🌍'}</td>
+                    <td class="py-3 text-sm text-white max-w-xs truncate" title="${c.name}">${c.name}</td>
+                    <td class="py-3 text-xs">
+                        <span class="px-2 py-0.5 rounded ${protoColors[c.protocol] || 'bg-slate-500/10 text-slate-400'}">${c.protocol.toUpperCase()}</span>
+                    </td>
+                    <td class="py-3 text-xs font-mono ${pingColor(c.ping)}">${c.ping < 0 ? '—' : c.ping + 'ms'}</td>
+                    <td class="py-3 text-xs">
+                        <span class="px-2 py-0.5 rounded ${c.is_working ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
+                            <i class="fas ${c.is_working ? 'fa-check' : 'fa-times'}"></i>
+                        </span>
+                    </td>
+                    <td class="py-3 text-xs">
+                        <div class="flex gap-1">
+                            <button class="px-2 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded" onclick="testConfig(${c.id})" title="Test"><i class="fas fa-vial"></i></button>
+                            <button class="px-2 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded" onclick="viewRaw(${c.id})" title="View"><i class="fas fa-eye"></i></button>
+                            <button class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded" onclick="deleteConfig(${c.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function togglePin(id) {
+            try { await apiRequest(`/configs/${id}/pin`, { method: 'POST' }); fetchConfigs(); loadStats(); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function testConfig(id) {
+            try {
+                const res = await apiRequest(`/configs/${id}/test`, { method: 'POST' });
+                showToast(`${res.country_flag} ${res.ping}ms`, res.is_working ? 'success' : 'error');
+                fetchConfigs(); loadStats();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function scanAll() {
+            try { await apiRequest('/configs/scan-all', { method: 'POST' }); showToast(t('common.success'), 'success'); setTimeout(() => { fetchConfigs(); loadStats(); }, 8000); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+        async function scanCountries() {
+            try { await apiRequest('/configs/scan-countries', { method: 'POST' }); showToast(t('common.success'), 'success'); setTimeout(() => { fetchConfigs(); loadStats(); }, 5000); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+        async function scanPing() {
+            try { await apiRequest('/configs/scan-ping', { method: 'POST' }); showToast(t('common.success'), 'success'); setTimeout(() => { fetchConfigs(); loadStats(); }, 8000); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+        async function pinAll() {
+            if (!confirm(t('configs.pin_all') + '?')) return;
+            try { const r = await apiRequest('/configs/pin-all', { method: 'POST' }); showToast(`${r.count} ✓`, 'success'); fetchConfigs(); loadStats(); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+        async function unpinAll() {
+            if (!confirm(t('configs.unpin_all') + '?')) return;
+            try { await apiRequest('/configs/unpin-all', { method: 'POST' }); showToast(t('common.success'), 'success'); fetchConfigs(); loadStats(); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+        async function deleteBroken() {
+            if (!confirm(t('configs.delete_broken_confirm'))) return;
+            try { const r = await apiRequest('/configs/delete-broken', { method: 'POST' }); showToast(`${r.count} ✓`, 'success'); fetchConfigs(); loadStats(); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+        function viewRaw(id) {
+            const c = allConfigs.find(c => c.id === id);
+            if (!c) return;
+            document.getElementById('raw-content').value = c.raw_config;
+            document.getElementById('raw-modal').classList.remove('hidden');
+            document.getElementById('raw-modal').classList.add('flex');
+        }
+        function closeRaw() {
+            document.getElementById('raw-modal').classList.add('hidden');
+            document.getElementById('raw-modal').classList.remove('flex');
+        }
+        function copyRaw() { copyToClipboard(document.getElementById('raw-content').value); }
+        async function deleteConfig(id) {
+            if (!confirm(t('common.delete') + '?')) return;
+            try { await apiRequest(`/configs/${id}`, { method: 'DELETE' }); showToast(t('common.success'), 'success'); fetchConfigs(); loadStats(); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+
+        document.getElementById('search-input').addEventListener('input', renderTable);
+        document.getElementById('protocol-filter').addEventListener('change', renderTable);
+        document.getElementById('pin-filter').addEventListener('change', renderTable);
+        document.getElementById('ping-filter').addEventListener('change', renderTable);
+        document.getElementById('status-filter').addEventListener('change', renderTable);
+
+        loadStats();
+        fetchConfigs();
+    </script>
+</body>
+</html>

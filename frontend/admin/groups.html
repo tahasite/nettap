@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Groups</title>
+    <link rel="stylesheet" href="/admin/assets/css/style.css">
+    <link rel="stylesheet" href="/admin/assets/vendor/fontawesome/css/all.min.css">
+    <script src="/admin/assets/vendor/tailwindcss.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Vazir', 'Segoe UI', 'sans-serif'] } } } }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="dashboard flex">
+        <main class="flex-1 relative min-h-screen overflow-hidden">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(99,102,241,0.05),transparent_50%)]"></div>
+
+            <div class="relative z-10">
+                <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-2" data-t="groups.title">Groups</h1>
+                        <p class="text-sm text-slate-400" data-t="groups.subtitle">Categorize configs</p>
+                    </div>
+                    <button class="py-2.5 px-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg flex items-center gap-2" onclick="openModal('add-group-modal')">
+                        <i class="fas fa-plus"></i>
+                        <span data-t="groups.add_new">Add Group</span>
+                    </button>
+                </div>
+
+                <div id="groups-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="text-slate-500 text-center py-8 col-span-full" data-t="common.loading">Loading...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 items-center justify-center p-4" id="add-group-modal">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-layer-group text-indigo-400"></i>
+                    <span data-t="groups.add_new">Add Group</span>
+                </h3>
+                <button class="text-slate-400 hover:text-white" onclick="closeModal('add-group-modal')"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="add-group-form">
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="groups.group_name">Group Name</label>
+                        <input class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" type="text" id="grp-name" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="common.description">Description</label>
+                        <textarea class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500" id="grp-desc" rows="2"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-2" data-t="groups.group_color">Group Color</label>
+                        <input type="color" class="w-20 h-10 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer" id="grp-color" value="#6366f1">
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-800 flex justify-end gap-3">
+                    <button type="submit" class="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl" data-t="common.add">Add</button>
+                    <button type="button" class="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl" onclick="closeModal('add-group-modal')" data-t="common.cancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 items-center justify-center p-4" id="assign-modal">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="px-6 py-5 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2" id="assign-title">
+                    <i class="fas fa-tasks text-indigo-400"></i>
+                    <span data-t="groups.manage_configs">Manage Configs</span>
+                </h3>
+                <button class="text-slate-400 hover:text-white" onclick="closeModal('assign-modal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 flex-1 overflow-y-auto">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="relative flex-1">
+                        <i class="fas fa-search absolute top-1/2 -translate-y-1/2 left-3 text-slate-500 text-xs"></i>
+                        <input id="assign-search" type="text" data-t-placeholder="common.search" class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <button onclick="selectAllConfigs(true)" class="px-3 py-2 bg-indigo-500/10 text-indigo-400 rounded-lg text-xs" data-t="groups.select_all">All</button>
+                    <button onclick="selectAllConfigs(false)" class="px-3 py-2 bg-slate-700/50 text-slate-300 rounded-lg text-xs" data-t="groups.select_none">None</button>
+                </div>
+                <div id="assign-configs-list" class="space-y-2"></div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-800 flex justify-between items-center">
+                <span id="selected-count" class="text-xs text-slate-400">0 selected</span>
+                <div class="flex gap-2">
+                    <button onclick="saveAssignments()" class="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl" data-t="common.save">Save</button>
+                    <button onclick="closeModal('assign-modal')" class="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl" data-t="common.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin/assets/js/i18n.js"></script>
+    <script src="/admin/assets/js/api.js"></script>
+    <script src="/admin/assets/js/sidebar.js"></script>
+    <script>
+        requireAuth();
+        renderSidebar('groups');
+        applyLangToDocument();
+
+        let allConfigs = [];
+        let currentGroupId = null;
+        let selectedIds = new Set();
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById(id).classList.add('flex');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+        }
+
+        async function fetchGroups() {
+            try {
+                const groups = await apiRequest('/groups/');
+                const grid = document.getElementById('groups-grid');
+                
+                if (!groups || groups.length === 0) {
+                    grid.innerHTML = `
+                        <div class="col-span-full text-center py-12 text-slate-500">
+                            <i class="fas fa-folder-open text-5xl mb-3 opacity-50"></i>
+                            <div class="text-sm">${t('groups.no_groups')}</div>
+                        </div>`;
+                    return;
+                }
+                
+                grid.innerHTML = groups.map(g => `
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg" style="border-top: 4px solid ${g.color}">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-lg font-bold text-white truncate">${g.name}</div>
+                                <div class="text-xs text-slate-500 mt-1">${g.description || '—'}</div>
+                            </div>
+                            <button onclick="deleteGroup(${g.id})" class="text-rose-400 hover:text-rose-300">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-3 mb-4 text-xs">
+                            <div class="bg-slate-800/50 px-3 py-1.5 rounded-lg flex items-center gap-1">
+                                <i class="fas fa-bolt text-indigo-400"></i>
+                                <b class="text-indigo-400">${g.config_count}</b>
+                            </div>
+                            <div class="bg-slate-800/50 px-3 py-1.5 rounded-lg flex items-center gap-1">
+                                <i class="fas fa-users text-emerald-400"></i>
+                                <b class="text-emerald-400">${g.user_count}</b>
+                            </div>
+                        </div>
+                        <button onclick="openAssignModal(${g.id}, '${g.name.replace(/'/g, "\\'")}')" class="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl text-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-cog"></i>
+                            <span data-t="groups.manage_configs">Manage</span>
+                        </button>
+                    </div>
+                `).join('');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        document.getElementById('add-group-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await apiRequest('/groups/', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: document.getElementById('grp-name').value,
+                        description: document.getElementById('grp-desc').value,
+                        color: document.getElementById('grp-color').value
+                    })
+                });
+                showToast(t('common.success'), 'success');
+                closeModal('add-group-modal');
+                document.getElementById('add-group-form').reset();
+                document.getElementById('grp-color').value = '#6366f1';
+                fetchGroups();
+            } catch (e) { showToast(e.message, 'error'); }
+        });
+
+        async function deleteGroup(id) {
+            if (!confirm(t('groups.delete_confirm'))) return;
+            try { await apiRequest(`/groups/${id}`, { method: 'DELETE' }); showToast(t('common.success'), 'success'); fetchGroups(); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function openAssignModal(groupId, groupName) {
+            currentGroupId = groupId;
+            document.getElementById('assign-title').innerHTML = `<i class="fas fa-tasks text-indigo-400"></i><span>${groupName}</span>`;
+            try {
+                allConfigs = await apiRequest('/configs/');
+                const groupConfigs = await apiRequest(`/groups/${groupId}/configs`);
+                selectedIds = new Set(groupConfigs.map(c => c.id));
+                renderAssignList();
+                openModal('assign-modal');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        function renderAssignList() {
+            const search = document.getElementById('assign-search').value.toLowerCase();
+            const container = document.getElementById('assign-configs-list');
+            const filtered = allConfigs.filter(c => !search || c.name.toLowerCase().includes(search) || (c.country_code || '').toLowerCase().includes(search));
+            
+            container.innerHTML = filtered.map(c => `
+                <label class="flex items-center gap-3 p-3 bg-slate-800/30 hover:bg-slate-800/50 rounded-xl cursor-pointer">
+                    <input type="checkbox" ${selectedIds.has(c.id) ? 'checked' : ''} data-id="${c.id}" class="w-4 h-4 accent-indigo-500 config-checkbox">
+                    <span class="text-lg">${c.country_flag || '🌍'}</span>
+                    <span class="flex-1 text-sm text-white truncate">${c.name}</span>
+                    <span class="text-xs text-slate-400">${c.ping > 0 ? c.ping + 'ms' : '—'}</span>
+                    <span class="text-xs px-2 py-0.5 rounded ${c.is_working ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
+                        <i class="fas ${c.is_working ? 'fa-check' : 'fa-times'}"></i>
+                    </span>
+                </label>
+            `).join('');
+            
+            document.querySelectorAll('.config-checkbox').forEach(cb => {
+                cb.addEventListener('change', (e) => {
+                    const id = parseInt(e.target.dataset.id);
+                    if (e.target.checked) selectedIds.add(id);
+                    else selectedIds.delete(id);
+                    updateCount();
+                });
+            });
+            updateCount();
+        }
+
+        function updateCount() {
+            document.getElementById('selected-count').textContent = `${selectedIds.size} ${t('groups.selected_count')}`;
+        }
+
+        function selectAllConfigs(checked) {
+            const search = document.getElementById('assign-search').value.toLowerCase();
+            const filtered = allConfigs.filter(c => !search || c.name.toLowerCase().includes(search));
+            filtered.forEach(c => { if (checked) selectedIds.add(c.id); else selectedIds.delete(c.id); });
+            renderAssignList();
+        }
+
+        async function saveAssignments() {
+            try {
+                await apiRequest(`/groups/${currentGroupId}/assign-configs`, {
+                    method: 'POST',
+                    body: JSON.stringify({ config_ids: Array.from(selectedIds) })
+                });
+                showToast(t('common.success'), 'success');
+                closeModal('assign-modal');
+                fetchGroups();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        document.getElementById('assign-search').addEventListener('input', renderAssignList);
+        fetchGroups();
+    </script>
+</body>
+</html>

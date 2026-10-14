@@ -1,0 +1,12 @@
+$ORIGIN {{DNS_DOMAIN}}.
+@   IN  SOA ns1.{{DNS_DOMAIN}}. admin.{{DNS_DOMAIN}}. (
+        {{SERIAL}}
+        7200
+        3600
+        1209600
+        60
+        )
+@   IN  NS  ns1.{{DNS_DOMAIN}}.
+@   IN  NS  ns2.{{DNS_DOMAIN}}.
+ns1 IN  A   {{SERVER_IP}}
+ns2 IN  A   {{SERVER_IP}}

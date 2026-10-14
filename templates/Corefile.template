@@ -1,0 +1,5 @@
+{{DNS_DOMAIN}} {
+    file /opt/nettap/data/zone.db
+    log
+    errors
+}

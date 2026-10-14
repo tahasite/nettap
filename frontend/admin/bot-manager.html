@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Bot Manager</title>
+    <link rel="stylesheet" href="/admin/assets/css/style.css">
+    <link rel="stylesheet" href="/admin/assets/vendor/fontawesome/css/all.min.css">
+    <script src="/admin/assets/vendor/tailwindcss.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Vazir', 'Segoe UI', 'sans-serif'] } } } }
+    </script>
+    <style>
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-active { background: #10b981; box-shadow: 0 0 12px #10b981; animation: pulse-glow 2s infinite; }
+        .status-inactive { background: #ef4444; box-shadow: 0 0 12px #ef4444; }
+        .status-pending { background: #f59e0b; box-shadow: 0 0 12px #f59e0b; animation: pulse-glow 1s infinite; }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .step-pending { background: rgba(100, 116, 139, 0.1); border-color: rgba(100, 116, 139, 0.3); }
+        .step-success { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.5); }
+        .step-failed { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.5); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="dashboard flex">
+        <main class="flex-1 relative min-h-screen overflow-hidden">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(99,102,241,0.05),transparent_50%)]"></div>
+
+            <div class="relative z-10">
+                <div class="flex flex-wrap justify-between items-center mb-8 gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+                            <i class="fas fa-robot text-indigo-400"></i>
+                            <span data-t="bot_manager.title">Bot Manager</span>
+                        </h1>
+                        <p class="text-sm text-slate-400" data-t="bot_manager.subtitle">Configure and test</p>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="refreshStatus()" class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl flex items-center gap-2">
+                            <i class="fas fa-sync" id="refresh-icon"></i>
+                            <span data-t="common.refresh">Refresh</span>
+                        </button>
+                        <button onclick="goToSettings()" class="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl flex items-center gap-2">
+                            <i class="fas fa-cog"></i>
+                            <span data-t="bot_manager.go_to_settings">Settings</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-xs text-slate-400 uppercase font-medium" data-t="bot_manager.service_status">Service</div>
+                            <span id="service-status-dot" class="status-indicator status-pending"></span>
+                        </div>
+                        <div class="text-xl font-bold text-white" id="service-status-text" data-t="common.loading">Loading...</div>
+                        <div class="text-xs text-slate-500 mt-1" id="service-status-detail">—</div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-xs text-slate-400 uppercase font-medium" data-t="bot_manager.token_status">Token</div>
+                            <span id="token-status-dot" class="status-indicator status-pending"></span>
+                        </div>
+                        <div class="text-xl font-bold text-white" id="token-status-text" data-t="common.loading">Loading...</div>
+                        <div class="text-xs text-slate-500 mt-1" id="token-status-detail">—</div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-xs text-slate-400 uppercase font-medium" data-t="bot_manager.webhook_status">Webhook</div>
+                            <span id="webhook-status-dot" class="status-indicator status-pending"></span>
+                        </div>
+                        <div class="text-xl font-bold text-white" id="webhook-status-text" data-t="common.loading">Loading...</div>
+                        <div class="text-xs text-slate-500 mt-1 truncate" id="webhook-status-detail">—</div>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-2xl p-6 mb-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 shrink-0 text-xl">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold text-white mb-2" data-t="bot_manager.auto_setup_title">Auto Setup</h3>
+                            <p class="text-sm text-slate-300 leading-6 mb-4" data-t="bot_manager.auto_setup_desc">System will perform all steps automatically</p>
+                            <ul class="text-xs text-slate-400 space-y-1 mb-4">
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-400"></i> Test Telegram proxy</li>
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-400"></i> Validate bot token</li>
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-400"></i> Check channel membership</li>
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-400"></i> Setup Webhook</li>
+                                <li class="flex items-center gap-2"><i class="fas fa-check text-emerald-400"></i> Restart service</li>
+                            </ul>
+                            <button onclick="runFullSetup()" id="setup-btn" class="py-3 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg flex items-center gap-2">
+                                <i class="fas fa-rocket"></i>
+                                <span data-t="bot_manager.auto_setup_btn">Start Auto Setup</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="setup-results" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-6">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fas fa-list-check text-indigo-400"></i>
+                        <span data-t="bot_manager.setup_results">Setup Results</span>
+                    </h3>
+                    <div id="setup-steps" class="space-y-2"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fas fa-robot text-indigo-400"></i>
+                                <span data-t="bot_manager.bot_info">Bot Info</span>
+                            </h3>
+                            <button onclick="testToken()" class="py-1.5 px-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-xs flex items-center gap-1">
+                                <i class="fas fa-vial"></i>
+                                <span data-t="bot_manager.test">Test</span>
+                            </button>
+                        </div>
+                        <div id="bot-info" class="space-y-2 text-sm">
+                            <div class="text-slate-500 text-center py-4" data-t="common.loading">Loading...</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fas fa-network-wired text-cyan-400"></i>
+                                <span data-t="bot_manager.proxy_info">Proxy</span>
+                            </h3>
+                            <button onclick="testProxy()" class="py-1.5 px-3 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-lg text-xs flex items-center gap-1">
+                                <i class="fas fa-vial"></i>
+                                <span data-t="bot_manager.test">Test</span>
+                            </button>
+                        </div>
+                        <div id="proxy-info" class="space-y-2 text-sm">
+                            <div class="text-slate-500 text-center py-4" data-t="common.loading">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-broadcast-tower text-emerald-400"></i>
+                            <span data-t="bot_manager.channels_check">Channels</span>
+                        </h3>
+                        <button onclick="checkChannels()" class="py-1.5 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-xs flex items-center gap-1">
+                            <i class="fas fa-check-double"></i>
+                            <span data-t="bot_manager.check_all">Check All</span>
+                        </button>
+                    </div>
+                    <div id="channels-info" class="space-y-2">
+                        <div class="text-slate-500 text-center py-4 text-sm" data-t="common.loading">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6">
+                    <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fas fa-globe text-amber-400"></i>
+                        <span data-t="bot_manager.webhook_management">Webhook</span>
+                    </h3>
+                    <div id="webhook-info" class="space-y-3 text-sm">
+                        <div class="text-slate-500 text-center py-4" data-t="common.loading">Loading...</div>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="setWebhook()" class="flex-1 py-2 px-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-link"></i>
+                            <span data-t="bot_manager.set_webhook">Set</span>
+                        </button>
+                        <button onclick="deleteWebhook()" class="flex-1 py-2 px-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-sm flex items-center justify-center gap-2">
+                            <i class="fas fa-unlink"></i>
+                            <span data-t="bot_manager.delete_webhook">Delete</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fas fa-sliders text-slate-400"></i>
+                        <span data-t="bot_manager.service_control">Service Control</span>
+                    </h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="restartService()" class="py-2 px-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-sm flex items-center gap-2">
+                            <i class="fas fa-redo"></i>
+                            <span data-t="bot_manager.restart_bot">Restart Bot</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/admin/assets/js/i18n.js"></script>
+    <script src="/admin/assets/js/api.js"></script>
+    <script src="/admin/assets/js/sidebar.js"></script>
+    <script>
+        requireAuth();
+        renderSidebar('bot-manager');
+        applyLangToDocument();
+
+        function goToSettings() {
+            window.location.href = '/admin/settings.html';
+        }
+
+        function setStatus(prefix, status, text, detail) {
+            const dot = document.getElementById(`${prefix}-dot`);
+            const textEl = document.getElementById(`${prefix}-text`);
+            const detailEl = document.getElementById(`${prefix}-detail`);
+            dot.className = 'status-indicator';
+            if (status === 'active') dot.classList.add('status-active');
+            else if (status === 'pending') dot.classList.add('status-pending');
+            else dot.classList.add('status-inactive');
+            textEl.textContent = text;
+            if (detail) detailEl.textContent = detail;
+        }
+
+        async function refreshStatus() {
+            const icon = document.getElementById('refresh-icon');
+            icon.classList.add('fa-spin');
+            
+            try {
+                const status = await apiRequest('/settings/telegram/service-status');
+                if (status.active) {
+                    setStatus('service-status', 'active', t('bot_manager.running'), status.status);
+                } else {
+                    setStatus('service-status', 'inactive', t('bot_manager.stopped'), status.status);
+                }
+            } catch (e) {
+                setStatus('service-status', 'inactive', t('common.error'), e.message);
+            }
+
+            try {
+                const tokenResult = await apiRequest('/settings/telegram/test-token', { method: 'POST', body: JSON.stringify({}) });
+                if (tokenResult.success) {
+                    setStatus('token-status', 'active', t('bot_manager.valid'), '@' + tokenResult.username);
+                    renderBotInfo(tokenResult);
+                } else {
+                    setStatus('token-status', 'inactive', t('bot_manager.invalid'), tokenResult.error);
+                    renderBotInfo(null, tokenResult.error);
+                }
+            } catch (e) {
+                setStatus('token-status', 'inactive', t('common.error'), e.message);
+            }
+
+            try {
+                const webhookResult = await apiRequest('/settings/telegram/webhook-info');
+                if (webhookResult.success) {
+                    const info = webhookResult.info;
+                    if (info.url) {
+                        setStatus('webhook-status', 'active', t('bot_manager.configured'), info.url);
+                    } else {
+                        setStatus('webhook-status', 'inactive', t('bot_manager.not_configured'), '');
+                    }
+                    renderWebhookInfo(info);
+                } else {
+                    setStatus('webhook-status', 'inactive', t('common.error'), webhookResult.error);
+                }
+            } catch (e) {
+                setStatus('webhook-status', 'inactive', t('common.error'), e.message);
+            }
+            
+            icon.classList.remove('fa-spin');
+        }
+
+        function renderBotInfo(info, error = null) {
+            const container = document.getElementById('bot-info');
+            if (error) {
+                container.innerHTML = `<div class="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3 text-rose-400 text-xs"><i class="fas fa-times-circle"></i> ${error}</div>`;
+                return;
+            }
+            if (!info || !info.success) {
+                container.innerHTML = '<div class="text-slate-500 text-center py-4">—</div>';
+                return;
+            }
+            container.innerHTML = `
+                <div class="flex items-center justify-between py-1 border-b border-slate-800">
+                    <span class="text-slate-400"><i class="fas fa-id-card"></i> Name:</span>
+                    <span class="text-white font-medium">${info.first_name}</span>
+                </div>
+                <div class="flex items-center justify-between py-1 border-b border-slate-800">
+                    <span class="text-slate-400"><i class="fas fa-at"></i> Username:</span>
+                    <span class="text-indigo-400 font-mono">@${info.username}</span>
+                </div>
+                <div class="flex items-center justify-between py-1 border-b border-slate-800">
+                    <span class="text-slate-400"><i class="fas fa-hashtag"></i> ID:</span>
+                    <span class="text-white font-mono">${info.bot_id}</span>
+                </div>
+                <div class="flex items-center justify-between py-1">
+                    <span class="text-slate-400"><i class="fas fa-users"></i> Groups:</span>
+                    <span><i class="fas fa-${info.can_join_groups ? 'check text-emerald-400' : 'times text-rose-400'}"></i></span>
+                </div>
+            `;
+        }
+
+        function renderWebhookInfo(info) {
+            const container = document.getElementById('webhook-info');
+            if (!info.url) {
+                container.innerHTML = `<div class="text-slate-500 text-center py-4">${t('bot_manager.not_configured')}</div>`;
+                return;
+            }
+            container.innerHTML = `
+                <div class="bg-slate-800/50 rounded-lg p-3">
+                    <div class="text-xs text-slate-400 mb-1"><i class="fas fa-link"></i> URL:</div>
+                    <div class="font-mono text-xs text-emerald-400 break-all" dir="ltr">${info.url}</div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
+                        <div class="text-xs text-slate-400">Errors</div>
+                        <div class="text-white font-bold">${info.last_error_date ? '⚠️' : '0'}</div>
+                    </div>
+                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
+                        <div class="text-xs text-slate-400">Pending</div>
+                        <div class="text-white font-bold">${info.pending_update_count || 0}</div>
+                    </div>
+                </div>
+                ${info.last_error_message ? `<div class="bg-rose-500/10 border border-rose-500/30 rounded-lg p-2 text-xs text-rose-400"><b>Last error:</b> ${info.last_error_message}</div>` : ''}
+            `;
+        }
+
+        async function testToken() {
+            try {
+                showToast(t('common.loading'), 'info');
+                const result = await apiRequest('/settings/telegram/test-token', { method: 'POST', body: JSON.stringify({}) });
+                if (result.success) {
+                    showToast(`✓ @${result.username}`, 'success');
+                    renderBotInfo(result);
+                    setStatus('token-status', 'active', t('bot_manager.valid'), '@' + result.username);
+                } else {
+                    showToast(result.error, 'error');
+                    renderBotInfo(null, result.error);
+                }
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function testProxy() {
+            try {
+                showToast(t('common.loading'), 'info');
+                const result = await apiRequest('/settings/telegram/test-proxy', { method: 'POST', body: JSON.stringify({}) });
+                const container = document.getElementById('proxy-info');
+                if (result.success) {
+                    showToast(t('common.success'), 'success');
+                    container.innerHTML = `<div class="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 text-emerald-400"><i class="fas fa-check-circle"></i> ${result.message || 'OK'}</div>`;
+                } else {
+                    showToast(result.error, 'error');
+                    container.innerHTML = `<div class="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3 text-rose-400"><i class="fas fa-times-circle"></i> ${result.error}</div>`;
+                }
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function checkChannels() {
+            const container = document.getElementById('channels-info');
+            container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-indigo-400"></i></div>';
+            try {
+                const settings = await apiRequest('/settings/');
+                let channels = [];
+                for (const cat of settings) {
+                    for (const s of cat.settings) {
+                        if (s.key === 'force_join_channels') {
+                            channels = s.value.split(',').map(c => c.trim()).filter(c => c);
+                            break;
+                        }
+                    }
+                }
+                if (channels.length === 0) {
+                    container.innerHTML = `<div class="text-slate-500 text-center py-4 text-sm">—</div>`;
+                    return;
+                }
+                const results = [];
+                for (const ch of channels) {
+                    try {
+                        const r = await apiRequest('/settings/telegram/test-channel', { method: 'POST', body: JSON.stringify({ channel: ch }) });
+                        results.push(r);
+                    } catch (e) { results.push({ success: false, channel: ch, error: e.message }); }
+                }
+                container.innerHTML = results.map(r => {
+                    if (r.success) {
+                        const adminBadge = r.bot_is_admin 
+                            ? `<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-xs"><i class="fas fa-crown"></i> ${t('bot_manager.is_admin')}</span>`
+                            : `<span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 text-xs"><i class="fas fa-exclamation-triangle"></i> ${t('bot_manager.not_admin')}</span>`;
+                        return `
+                            <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-3 flex items-center justify-between">
+                                <div>
+                                    <div class="text-white font-medium">${r.title}</div>
+                                    <div class="text-xs text-slate-400"><i class="fas fa-at"></i> ${r.channel} • <i class="fas fa-users"></i> ${r.members_count || 0}</div>
+                                </div>
+                                ${adminBadge}
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div class="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3">
+                                <div class="text-rose-400 font-medium">${r.channel}</div>
+                                <div class="text-xs text-rose-300 mt-1">${r.error}</div>
+                            </div>
+                        `;
+                    }
+                }).join('');
+            } catch (e) {
+                container.innerHTML = `<div class="text-rose-400 text-center py-4 text-sm">${e.message}</div>`;
+            }
+        }
+
+        async function setWebhook() {
+            try {
+                showToast(t('common.loading'), 'info');
+                const result = await apiRequest('/settings/telegram/set-webhook', { method: 'POST' });
+                if (result.success) {
+                    showToast(t('common.success'), 'success');
+                    refreshStatus();
+                } else {
+                    showToast(result.error, 'error');
+                }
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function deleteWebhook() {
+            if (!confirm(t('bot_manager.delete_webhook') + '?')) return;
+            try {
+                const result = await apiRequest('/settings/telegram/delete-webhook', { method: 'POST' });
+                if (result.success) {
+                    showToast(t('common.success'), 'success');
+                    refreshStatus();
+                } else {
+                    showToast(result.error, 'error');
+                }
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function restartService() {
+            if (!confirm(t('bot_manager.restart_bot') + '?')) return;
+            try {
+                showToast(t('common.loading'), 'info');
+                const result = await apiRequest('/settings/telegram/restart-service', { method: 'POST' });
+                if (result.success) {
+                    showToast(t('common.success'), 'success');
+                    setTimeout(refreshStatus, 3000);
+                } else {
+                    showToast(result.error, 'error');
+                }
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function runFullSetup() {
+            const btn = document.getElementById('setup-btn');
+            const resultsDiv = document.getElementById('setup-results');
+            const stepsDiv = document.getElementById('setup-steps');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>' + t('common.loading') + '</span>';
+            resultsDiv.classList.remove('hidden');
+            stepsDiv.innerHTML = `<div class="step-pending border rounded-lg p-3 flex items-center gap-3"><i class="fas fa-spinner fa-spin text-indigo-400"></i><span class="text-sm text-slate-300">${t('common.loading')}</span></div>`;
+            
+            try {
+                const result = await apiRequest('/settings/telegram/full-setup', { method: 'POST' });
+                const stepLabels = {
+                    'token_check': 'Token Check',
+                    'proxy_test': 'Proxy Test',
+                    'token_test': 'Token Validation',
+                    'username_updated': 'Username Update',
+                    'channels_check': 'Channels Check',
+                    'webhook_setup': 'Webhook Setup'
+                };
+                const stepsHtml = result.steps.map(step => {
+                    const label = stepLabels[step.step] || step.step;
+                    if (step.step === 'channels_check') {
+                        const channelsHtml = step.channels.map(ch => {
+                            if (ch.success) {
+                                const adminIcon = ch.bot_is_admin ? '<i class="fas fa-crown text-amber-400"></i>' : '<i class="fas fa-exclamation-triangle text-amber-400"></i>';
+                                return `<div class="text-xs text-slate-400 ps-6">• ${ch.title || ch.channel} ${adminIcon}</div>`;
+                            } else {
+                                return `<div class="text-xs text-rose-400 ps-6">• ${ch.channel}: ${ch.error}</div>`;
+                            }
+                        }).join('');
+                        return `<div class="step-success border rounded-lg p-3"><div class="flex items-center gap-3 mb-2"><i class="fas fa-check-circle text-emerald-400"></i><span class="text-sm text-white font-medium">${label}</span></div>${channelsHtml}</div>`;
+                    }
+                    const isSuccess = step.success !== false;
+                    const stateClass = isSuccess ? 'step-success' : 'step-failed';
+                    const icon = isSuccess ? '<i class="fas fa-check-circle text-emerald-400"></i>' : '<i class="fas fa-times-circle text-rose-400"></i>';
+                    const detail = step.error ? `<div class="text-xs text-rose-400 mt-1">${step.error}</div>` : (step.username ? `<div class="text-xs text-emerald-400 mt-1">@${step.username}</div>` : (step.message ? `<div class="text-xs text-slate-400 mt-1">${step.message}</div>` : ''));
+                    return `<div class="${stateClass} border rounded-lg p-3"><div class="flex items-center gap-3">${icon}<span class="text-sm text-white font-medium">${label}</span></div>${detail}</div>`;
+                }).join('');
+                stepsDiv.innerHTML = stepsHtml;
+                if (result.success) {
+                    showToast(t('common.success'), 'success');
+                    setTimeout(() => { refreshStatus(); }, 4000);
+                } else {
+                    showToast(t('common.warning'), 'error');
+                }
+            } catch (e) {
+                stepsDiv.innerHTML = `<div class="step-failed border rounded-lg p-3"><div class="flex items-center gap-3"><i class="fas fa-times-circle text-rose-400"></i><span class="text-sm text-rose-400">${e.message}</span></div></div>`;
+                showToast(e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-rocket"></i><span>' + t('bot_manager.auto_setup_btn') + '</span>';
+            }
+        }
+
+        refreshStatus();
+        setInterval(refreshStatus, 30000);
+    </script>
+</body>
+</html>

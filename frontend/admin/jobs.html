@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Cron Jobs</title>
+    <link rel="stylesheet" href="/admin/assets/css/style.css">
+    <link rel="stylesheet" href="/admin/assets/vendor/fontawesome/css/all.min.css">
+    <script src="/admin/assets/vendor/tailwindcss.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Vazir', 'Segoe UI', 'sans-serif'] } } } }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="dashboard flex">
+        <main class="flex-1 relative min-h-screen overflow-hidden">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(99,102,241,0.05),transparent_50%)]"></div>
+
+            <div class="relative z-10">
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-white mb-2" data-t="jobs.title">Cron Jobs</h1>
+                    <p class="text-sm text-slate-400" data-t="jobs.subtitle">Automatic background tasks</p>
+                </div>
+
+                <div class="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 mb-6 text-xs text-cyan-300 flex items-start gap-2">
+                    <i class="fas fa-clock mt-0.5"></i>
+                    <span data-t="jobs.schedule_info">Current schedule...</span>
+                </div>
+
+                <div class="mb-6">
+                    <h2 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                        <i class="fas fa-chart-pie text-indigo-400"></i>
+                        <span data-t="jobs.latest_status">Latest Status</span>
+                    </h2>
+                    <div id="summary-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="text-slate-500 text-center py-4 col-span-full" data-t="common.loading">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-history text-indigo-400"></i>
+                            <span data-t="jobs.execution_history">History</span>
+                        </h2>
+                        <button onclick="fetchLogs()" class="py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs">
+                            <i class="fas fa-sync"></i> <span data-t="common.refresh">Refresh</span>
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-800">
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="jobs.execution_date">Date</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="jobs.job_name">Job</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="common.status">Status</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="jobs.duration">Duration</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="jobs.message">Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logs-table-body" class="divide-y divide-slate-800/50">
+                                    <tr><td colspan="5" class="py-4 text-center text-slate-500 text-sm" data-t="common.loading">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/admin/assets/js/i18n.js"></script>
+    <script src="/admin/assets/js/api.js"></script>
+    <script src="/admin/assets/js/sidebar.js"></script>
+    <script>
+        requireAuth();
+        renderSidebar('jobs');
+        applyLangToDocument();
+
+        const JOB_META = {
+            scraper: { icon: 'fa-download', color: 'indigo' },
+            dns_refresh: { icon: 'fa-globe', color: 'emerald' },
+            cleanup_stale: { icon: 'fa-broom', color: 'amber' },
+            check_expired: { icon: 'fa-hourglass-end', color: 'rose' },
+            rebuild_zone: { icon: 'fa-file-code', color: 'blue' }
+        };
+
+        async function fetchSummary() {
+            try {
+                const summary = await apiRequest('/jobs/summary');
+                const grid = document.getElementById('summary-grid');
+                
+                if (!summary || summary.length === 0) {
+                    grid.innerHTML = `<div class="col-span-full text-center text-slate-500 py-4 text-sm">${t('jobs.no_logs')}</div>`;
+                    return;
+                }
+                
+                grid.innerHTML = summary.map(s => {
+                    const meta = JOB_META[s.job_name] || { icon: 'fa-cog', color: 'slate' };
+                    const statusBadge = s.status === 'success' 
+                        ? `<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-xs"><i class="fas fa-check"></i> ${t('common.success')}</span>`
+                        : `<span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 text-xs"><i class="fas fa-times"></i> ${t('common.error')}</span>`;
+                    
+                    return `
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-10 h-10 bg-${meta.color}-500/10 text-${meta.color}-400 rounded-xl flex items-center justify-center">
+                                    <i class="fas ${meta.icon}"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-bold text-white truncate">${s.job_name}</div>
+                                </div>
+                                ${statusBadge}
+                            </div>
+                            <div class="text-xs space-y-1">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">${t('jobs.last_execution')}:</span>
+                                    <span class="text-white">${formatDate(s.last_run)}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">${t('jobs.duration_label')}:</span>
+                                    <span class="text-white">${s.duration_ms} ms</span>
+                                </div>
+                                ${s.message ? `<div class="mt-2 pt-2 border-t border-slate-800 text-slate-300">${s.message}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function fetchLogs() {
+            try {
+                const logs = await apiRequest('/jobs/logs');
+                const tbody = document.getElementById('logs-table-body');
+                
+                if (!logs || logs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-500 text-sm">${t('jobs.no_logs')}</td></tr>`;
+                    return;
+                }
+                
+                tbody.innerHTML = logs.map(log => {
+                    const meta = JOB_META[log.job_name] || { icon: 'fa-cog' };
+                    const statusColor = log.status === 'success' ? 'emerald' : 'rose';
+                    const statusIcon = log.status === 'success' ? 'fa-check' : 'fa-times';
+                    
+                    return `
+                        <tr class="hover:bg-slate-800/20">
+                            <td class="py-3 text-xs text-slate-300">${formatDate(log.executed_at)}</td>
+                            <td class="py-3 text-xs">
+                                <i class="fas ${meta.icon} text-slate-400"></i>
+                                <span class="text-white ms-1">${log.job_name}</span>
+                            </td>
+                            <td class="py-3 text-xs">
+                                <span class="px-2 py-0.5 rounded bg-${statusColor}-500/10 text-${statusColor}-400">
+                                    <i class="fas ${statusIcon}"></i> ${log.status}
+                                </span>
+                            </td>
+                            <td class="py-3 text-xs text-slate-400 font-mono">${log.duration_ms} ms</td>
+                            <td class="py-3 text-xs text-slate-400 max-w-md truncate" title="${log.message}">${log.message || '—'}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        fetchSummary();
+        fetchLogs();
+        setInterval(() => { fetchSummary(); fetchLogs(); }, 30000);
+    </script>
+</body>
+</html>

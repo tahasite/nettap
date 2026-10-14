@@ -1,0 +1,27 @@
+[Unit]
+Description=NETtap CoreDNS Server
+Documentation=https://github.com/tahasite/nettap
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+PermissionsStartOnly=true
+LimitNOFILE=1048576
+LimitNPROC=512
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+WorkingDirectory=/opt/nettap/data
+ExecStart=/usr/local/bin/coredns -conf /opt/nettap/data/Corefile
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=coredns
+
+[Install]
+WantedBy=multi-user.target

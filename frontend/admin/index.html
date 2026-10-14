@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/admin/assets/css/style.css">
+    <link rel="stylesheet" href="/admin/assets/vendor/fontawesome/css/all.min.css">
+    <script src="/admin/assets/vendor/tailwindcss.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Vazir', 'Segoe UI', 'sans-serif'] } } } }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="dashboard flex">
+        <main class="flex-1 relative min-h-screen overflow-hidden">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_10%_10%,rgba(99,102,241,0.05),transparent_50%)]"></div>
+
+            <div class="relative z-10">
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-white mb-2" data-t="dashboard.title">Dashboard</h1>
+                    <p class="text-sm text-slate-400" data-t="dashboard.subtitle">System overview and statistics</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center gap-4 shadow-xl">
+                        <div class="w-14 h-14 bg-indigo-500/10 text-indigo-400 rounded-xl flex items-center justify-center text-2xl">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-3xl font-bold text-white" id="stat-users">-</div>
+                            <div class="text-xs text-slate-400 mt-1" data-t="dashboard.total_users">Total Users</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center gap-4 shadow-xl">
+                        <div class="w-14 h-14 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center text-2xl">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-3xl font-bold text-white" id="stat-active">-</div>
+                            <div class="text-xs text-slate-400 mt-1" data-t="dashboard.active_users">Active</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center gap-4 shadow-xl">
+                        <div class="w-14 h-14 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center text-2xl">
+                            <i class="fas fa-link"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-3xl font-bold text-white" id="stat-sellers">-</div>
+                            <div class="text-xs text-slate-400 mt-1" data-t="dashboard.total_sellers">Seller Subs</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center gap-4 shadow-xl">
+                        <div class="w-14 h-14 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center text-2xl">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-3xl font-bold text-white" id="stat-configs">-</div>
+                            <div class="text-xs text-slate-400 mt-1" data-t="dashboard.total_configs">Configs</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+                    <div class="px-6 py-5 border-b border-slate-800 flex items-center gap-3">
+                        <i class="fas fa-user-clock text-indigo-400"></i>
+                        <h2 class="text-lg font-bold text-white" data-t="dashboard.recent_users">Recent Users</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-800">
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="users.username">Username</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="common.created_at">Created</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="users.expires">Expires</th>
+                                        <th class="pb-3 text-xs font-medium text-slate-400 text-start" data-t="common.status">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-recent-list" class="divide-y divide-slate-800/50">
+                                    <tr><td colspan="4" class="py-4 text-center text-slate-500 text-sm" data-t="common.loading">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/admin/assets/js/i18n.js"></script>
+    <script src="/admin/assets/js/api.js"></script>
+    <script src="/admin/assets/js/sidebar.js"></script>
+    <script>
+        requireAuth();
+        renderSidebar('dashboard');
+        applyLangToDocument();
+
+        async function loadStats() {
+            try {
+                const users = await apiRequest('/users/');
+                const sellers = await apiRequest('/sellers/');
+                const configStats = await apiRequest('/configs/stats');
+
+                document.getElementById('stat-users').textContent = users.length;
+                document.getElementById('stat-active').textContent = users.filter(u => u.is_active && !u.is_blocked).length;
+                document.getElementById('stat-sellers').textContent = sellers.length;
+                document.getElementById('stat-configs').textContent = configStats.working;
+
+                const recent = document.getElementById('users-recent-list');
+                if (users.length === 0) {
+                    recent.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-500 text-sm">${t('dashboard.no_users')}</td></tr>`;
+                    return;
+                }
+
+                recent.innerHTML = users.slice(0, 5).map(u => {
+                    let statusHtml = '';
+                    if (u.is_blocked) {
+                        statusHtml = `<span class="px-2.5 py-0.5 rounded-full text-xs bg-rose-500/10 text-rose-400"><i class="fas fa-ban"></i> ${t('common.blocked')}</span>`;
+                    } else if (u.is_active) {
+                        statusHtml = `<span class="px-2.5 py-0.5 rounded-full text-xs bg-emerald-500/10 text-emerald-400"><i class="fas fa-check"></i> ${t('common.active')}</span>`;
+                    } else {
+                        statusHtml = `<span class="px-2.5 py-0.5 rounded-full text-xs bg-rose-500/10 text-rose-400"><i class="fas fa-times"></i> ${t('common.expired')}</span>`;
+                    }
+                    return `
+                        <tr class="hover:bg-slate-800/30">
+                            <td class="py-4 text-sm font-medium text-white">${u.username}</td>
+                            <td class="py-4 text-sm text-slate-300">${formatDate(u.created_at)}</td>
+                            <td class="py-4 text-sm text-slate-300">${u.expire_date ? formatDate(u.expire_date) : '-'}</td>
+                            <td class="py-4 text-sm">${statusHtml}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+[Unit]
+Description=NETtap Telegram Bot
+Documentation=https://github.com/tahasite/nettap
+After=network.target nettap-backend.service
+Wants=network.target
+Requires=nettap-backend.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/nettap/telegram-bot
+Environment="PATH=/opt/nettap/telegram-bot/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/opt/nettap/telegram-bot/venv/bin/python bot.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nettap-bot
+
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

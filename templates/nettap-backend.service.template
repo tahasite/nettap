@@ -1,0 +1,24 @@
+[Unit]
+Description=NETtap VPN Panel Backend
+Documentation=https://github.com/tahasite/nettap
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/nettap/backend
+Environment="PATH=/opt/nettap/backend/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/opt/nettap/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port {{BACKEND_PORT}}
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nettap-backend
+
+LimitNOFILE=1048576
+LimitNPROC=512
+
+[Install]
+WantedBy=multi-user.target
